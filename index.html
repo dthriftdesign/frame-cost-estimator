@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<!--
+  Frame Mockup & Cost Estimator
+  Single-file app for GitHub Pages. No build step, no dependencies.
+  Once Pages is enabled, this file is served at the repo's Pages URL.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frame Mockup &amp; Cost Estimator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #131316;
+    --surface: #1d1d22;
+    --surface2: #26262c;
+    --surface3: #2f2f36;
+    --outline: #3a3a42;
+    --text: #e7e5e0;
+    --dim: #9a97a0;
+    --primary: #d4a95c;
+    --primary-dim: rgba(212, 169, 92, .14);
+    --danger: #e07a6a;
+    --radius: 12px;
+    --mono: "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 Inter, Roboto, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .app { max-width: 1200px; margin: 0 auto; }
+
+  header { display: flex; align-items: baseline; gap: 12px; margin: 4px 4px 20px; }
+  header h1 { font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+  header .sub { color: var(--dim); font-size: 13px; }
+
+  .cols { display: flex; gap: 20px; align-items: flex-start; }
+  .side { width: 340px; flex: none; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ---------- left rail card ---------- */
+  .rail {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .rail-section { padding: 16px 18px; }
+  .rail-section + .rail-section { border-top: 1px solid var(--outline); }
+  .rail h2 {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 12px;
+  }
+
+  /* profile header area */
+  .profile-head { background: var(--surface2); }
+  .profile-row { display: flex; gap: 8px; align-items: center; }
+  .profile-row select { flex: 1; }
+  .dirty-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+    flex: none; opacity: 0; transition: opacity .15s;
+  }
+  .dirty-dot.on { opacity: 1; }
+  .profile-hint { color: var(--dim); font-size: 11.5px; margin-top: 8px; min-height: 15px; }
+
+  /* fields */
+  .field-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .field-row:first-of-type { margin-top: 0; }
+  .field-row > label { flex: 1; color: var(--dim); font-size: 13px; }
+  .field-row .pair { display: flex; align-items: center; gap: 6px; }
+  .unit { color: var(--dim); font-size: 12px; }
+
+  input[type=number], input[type=text], select {
+    background: var(--surface3);
+    color: var(--text);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-family: var(--mono); font-size: 13px;
+    width: 74px;
+    transition: border-color .12s, background .12s;
+  }
+  input[type=text] { font-family: inherit; width: 100%; }
+  input:hover, select:hover { background: #34343c; }
+  input:focus, select:focus {
+    outline: none; border-color: var(--primary); background: var(--surface3);
+  }
+  input[type=color] {
+    width: 38px; height: 30px; padding: 2px;
+    border: 1px solid var(--outline); border-radius: 8px;
+    background: var(--surface3); cursor: pointer;
+  }
+  select {
+    cursor: pointer; appearance: none; -webkit-appearance: none;
+    padding-right: 30px; width: auto;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%239a97a0'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+
+  /* buttons */
+  button {
+    font: 600 13px/1 inherit;
+    border: none; border-radius: 20px;
+    padding: 9px 16px; cursor: pointer;
+    background: var(--surface3); color: var(--text);
+    transition: background .12s, color .12s;
+  }
+  button:hover { background: #3a3a44; }
+  button.filled { background: var(--primary); color: #1c1608; }
+  button.filled:hover { background: #e0b96f; }
+  button.tonal { background: var(--primary-dim); color: var(--primary); }
+  button.tonal:hover { background: rgba(212,169,92,.22); }
+  button.ghost { background: transparent; color: var(--dim); padding: 9px 10px; }
+  button.ghost:hover { color: var(--danger); background: rgba(224,122,106,.1); }
+  button.armed { background: var(--danger); color: #fff; }
+  button.armed:hover { background: var(--danger); color: #fff; }
+  button:disabled { opacity: .35; cursor: default; }
+
+  .icon-btn {
+    width: 34px; height: 34px; padding: 0; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; flex: none;
+  }
+
+  /* upload chips */
+  .upload-chip {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--surface3); border: 1px dashed var(--outline);
+    border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    transition: border-color .12s;
+  }
+  .upload-chip + .upload-chip { margin-top: 8px; }
+  .upload-chip:hover { border-color: var(--primary); }
+  .upload-chip.loaded { border-style: solid; border-color: var(--outline); }
+  .upload-chip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-chip .ic { font-size: 18px; flex: none; }
+  .upload-chip .lbl { font-size: 13px; font-weight: 600; }
+  .upload-chip .fn {
+    color: var(--dim); font-size: 11.5px; font-family: var(--mono);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px;
+  }
+  .check-row { margin-top: 10px; display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12.5px; }
+  .check-row input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+
+  /* save bar at bottom of rail */
+  .save-bar { background: var(--surface2); }
+  .save-bar .btns { display: flex; gap: 8px; align-items: center; }
+  .saveas-row { display: none; gap: 8px; margin-top: 10px; }
+  .saveas-row.open { display: flex; }
+  .saveas-row input { flex: 1; font-family: inherit; }
+
+  /* ---------- main column ---------- */
+  .canvas-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    display: flex; justify-content: center;
+  }
+  canvas { display: block; max-width: 100%; border-radius: 6px; }
+
+  .costs {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 22px;
+    display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+  }
+  .stat { min-width: 110px; }
+  .stat .k { color: var(--dim); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; }
+  .stat .v { font-family: var(--mono); font-size: 17px; margin-top: 3px; }
+  .stat.total .v { color: var(--primary); font-size: 24px; font-weight: 700; }
+  .costs .spacer { flex: 1; }
+  .calc-note { width: 100%; color: var(--dim); font-size: 11.5px; font-family: var(--mono); }
+
+  .warn {
+    display: none;
+    background: rgba(224,122,106,.1);
+    border: 1px solid rgba(224,122,106,.4);
+    color: var(--danger);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px;
+  }
+  .warn.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Frame Mockup &amp; Cost Estimator</h1>
+    <span class="sub">upload artwork + moulding sample · live estimate</span>
+  </header>
+
+  <div class="cols">
+    <div class="side">
+      <div class="rail">
+
+        <div class="rail-section profile-head">
+          <h2>Profile</h2>
+          <div class="profile-row">
+            <select id="profileSelect"></select>
+            <span class="dirty-dot" id="dirtyDot" title="Unsaved changes"></span>
+            <button class="icon-btn ghost" id="btnDelete" title="Delete profile">🗑</button>
+          </div>
+          <div class="profile-hint" id="profileHint"></div>
+        </div>
+
+        <div class="rail-section">
+          <h2>Images</h2>
+          <label class="upload-chip" id="chipArt">
+            <span class="ic">🖼</span>
+            <span><span class="lbl">Artwork</span><br><span class="fn" id="nameArt">Click to upload a photo</span></span>
+            <input type="file" id="fileArt" accept="image/*">
+          </label>
+          <label class="upload-chip" id="chipMould">
+            <span class="ic">🪵</span>
+            <span><span class="lbl">Moulding sample</span><br><span class="fn" id="nameMould">Straight-on photo of the strip</span></span>
+            <input type="file" id="fileMould" accept="image/*">
+          </label>
+          <label class="check-row"><input type="checkbox" id="flipMould"> Flip moulding (inner/outer edge)</label>
+          <div class="field-row" style="margin-top:12px">
+            <button class="tonal" id="btnSample" style="width:100%">Try sample images</button>
+          </div>
+        </div>
+
+        <div class="rail-section">
+          <h2>Dimensions</h2>
+          <div class="field-row">
+            <label for="artW">Artwork size</label>
+            <span class="pair">
+              <input type="number" id="artW" min="0.5" step="0.25" value="8">
+              <span class="unit">×</span>
+              <input type="number" id="artH" min="0.5" step="0.25" value="10">
+              <span class="unit">in</span>
+            </span>
+          </div>
+          <div class="field-row">
+            <label for="faceW">Moulding face</label>
+            <span class="pair"><input type="number" id="faceW" min="0.125" step="0.125" value="1.5"> <span class="unit">in</span></span>
+          </div>
+          <div class="field-row">
+            <label for="matW">Mat width</label>
+            <span class="pair"><input type="number" id="matW" min="0" step="0.25" value="2"> <span class="unit">in</span></span>
+          </div>
+          <div class="field-row" id="matColorRow">
+            <label for="matC">Mat color</label>
+            <input type="color" id="matC" value="#f5f0e8">
+          </div>
+        </div>
+
+        <div class="rail-section">
+          <h2>Pricing</h2>
+          <div class="field-row">
+            <label for="costFt">Cost per linear ft</label>
+            <span class="pair"><span class="unit">$</span><input type="number" id="costFt" min="0" step="0.05" value="4.50"></span>
+          </div>
+          <div class="field-row">
+            <label for="markup">Markup</label>
+            <span class="pair"><input type="number" id="markup" min="0" step="0.1" value="2.5"> <span class="unit">×</span></span>
+          </div>
+          <div class="field-row">
+            <label for="waste">Waste</label>
+            <span class="pair"><input type="number" id="waste" min="0" step="1" value="15"> <span class="unit">%</span></span>
+          </div>
+          <div class="field-row">
+            <label for="labor">Labor add-on</label>
+            <span class="pair"><span class="unit">$</span><input type="number" id="labor" min="0" step="0.5" value="0"></span>
+          </div>
+        </div>
+
+        <div class="rail-section save-bar">
+          <div class="btns">
+            <button class="filled" id="btnSave">Save profile</button>
+            <button class="tonal" id="btnSaveAs">Save as new…</button>
+          </div>
+          <div class="saveas-row" id="saveAsRow">
+            <input type="text" id="saveAsName" placeholder="New profile name">
+            <button class="filled" id="btnSaveAsConfirm">Save</button>
+            <button id="btnSaveAsCancel">Cancel</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="warn" id="warnBox"></div>
+      <div class="canvas-card"><canvas id="cv" width="800" height="600"></canvas></div>
+      <div class="costs">
+        <div class="stat"><div class="k">Outer size</div><div class="v" id="outSize">—</div></div>
+        <div class="stat"><div class="k">Moulding needed</div><div class="v" id="outFeet">—</div></div>
+        <div class="stat"><div class="k">Material</div><div class="v" id="outMat">—</div></div>
+        <div class="stat" id="laborStat" style="display:none"><div class="k">Labor</div><div class="v" id="outLabor">—</div></div>
+        <div class="stat total"><div class="k">Customer price</div><div class="v" id="outPrice">—</div></div>
+        <span class="spacer"></span>
+        <button class="filled" id="btnPNG">Save PNG</button>
+        <div class="calc-note" id="calcNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================== state ============================== */
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+
+let artImg = null;     // HTMLImageElement — never persisted
+let mouldImg = null;   // HTMLImageElement — never persisted
+
+const DEFAULT_PROFILE = {
+  name: 'Standard',
+  costPerFoot: 4.50,
+  markupMultiplier: 2.5,
+  wastePercent: 15,
+  defaultMatWidth: 2,
+  defaultMatColor: '#f5f0e8',
+  laborCostFlat: 0
+};
+
+// fields that belong to a profile: element id -> profile key
+const PROFILE_FIELDS = {
+  costFt: 'costPerFoot',
+  markup: 'markupMultiplier',
+  waste:  'wastePercent',
+  labor:  'laborCostFlat',
+  matW:   'defaultMatWidth',
+  matC:   'defaultMatColor'
+};
+
+let profiles = [];
+let activeProfileIndex = 0;
+
+function loadProfiles() {
+  try {
+    const raw = localStorage.getItem('framingProfiles');
+    profiles = raw ? JSON.parse(raw) : [];
+  } catch (e) { profiles = []; }
+  if (!Array.isArray(profiles) || profiles.length === 0) {
+    profiles = [Object.assign({}, DEFAULT_PROFILE)];
+  }
+}
+function saveProfiles() {
+  // Profiles contain only primitives (name/numbers/color strings) — never
+  // image data. Keeps localStorage tiny and well under quota.
+  localStorage.setItem('framingProfiles', JSON.stringify(profiles));
+}
+
+function rebuildProfileDropdown() {
+  const sel = $('profileSelect');
+  sel.innerHTML = '';
+  profiles.forEach((p, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = p.name;
+    sel.appendChild(o);
+  });
+  sel.value = activeProfileIndex;
+}
+
+function applyProfile(i) {
+  activeProfileIndex = i;
+  const p = profiles[i];
+  for (const [id, key] of Object.entries(PROFILE_FIELDS)) $(id).value = p[key];
+  update();
+}
+
+// live fields vs. the saved profile → dirty indicator
+function fieldsMatchProfile() {
+  const p = profiles[activeProfileIndex];
+  return Object.entries(PROFILE_FIELDS).every(([id, key]) => {
+    const v = $(id).value;
+    return key === 'defaultMatColor'
+      ? v.toLowerCase() === String(p[key]).toLowerCase()
+      : +v === +p[key];
+  });
+}
+function refreshDirty() {
+  const dirty = !fieldsMatchProfile();
+  $('dirtyDot').classList.toggle('on', dirty);
+  $('btnSave').disabled = !dirty;
+  $('profileHint').textContent = dirty
+    ? 'Edited — using these values live. Save to keep them.'
+    : '';
+}
+
+function readProfileFields(name) {
+  const p = { name };
+  for (const [id, key] of Object.entries(PROFILE_FIELDS)) {
+    p[key] = key === 'defaultMatColor' ? $(id).value : (+$(id).value || 0);
+  }
+  return p;
+}
+
+/* ============================== cost math ============================== */
+/*
+  Chop-length rule: outer frame dimension = art + 2*mat + 2*face.
+  The LONG POINT of each mitered stick equals the outer dimension —
+  the face width is already included, so total raw moulding is simply
+  the outer perimeter: 2*(outerW + outerH). Waste % is added on top.
+*/
+function computeCosts(v) {
+  const outerW = v.W + 2 * v.m + 2 * v.f;
+  const outerH = v.H + 2 * v.m + 2 * v.f;
+  const rawTotal = 2 * (outerW + outerH);                    // inches
+  const withWaste = rawTotal * (1 + v.wastePercent / 100);
+  const feet = withWaste / 12;
+  const material = feet * v.costPerFoot;
+  const price = material * v.markupMultiplier + v.laborCostFlat;
+  return { outerW, outerH, rawTotal, feet, material, price };
+}
+
+function readInputs() {
+  return {
+    W: +$('artW').value || 0,
+    H: +$('artH').value || 0,
+    m: Math.max(0, +$('matW').value || 0),
+    f: Math.max(0, +$('faceW').value || 0),
+    matColor: $('matC').value,
+    costPerFoot: +$('costFt').value || 0,
+    markupMultiplier: +$('markup').value || 0,
+    wastePercent: +$('waste').value || 0,
+    laborCostFlat: +$('labor').value || 0
+  };
+}
+
+const fmt$ = n => '$' + n.toFixed(2);
+const fmtIn = n => (Math.round(n * 100) / 100) + '';
+
+/* ============================== rendering ============================== */
+/*
+  Corner approach: manual miter clip polygons, with the moulding drawn per
+  side — NOT createPattern. A photographed strip has directional grain and
+  profile shading, so each bar clips to its miter trapezoid, rotates the
+  context so the strip runs along the bar, and stretch-draws the sample to
+  barLength x faceWidth. Correct grain orientation on all four sides, no
+  tile seams. (Same technique as GreenImp/canvas-frame and commercial
+  visualizers.)
+*/
+const PAD = 40;
+
+function drawPlaceholder(msg) {
+  ctx.fillStyle = '#26262c';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#77747e';
+  ctx.font = '15px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(msg, cv.width / 2, cv.height / 2);
+}
+
+function render(v) {
+  ctx.fillStyle = '#26262c';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+
+  if (!artImg || !mouldImg) {
+    drawPlaceholder('Upload artwork and moulding to preview');
+    return;
+  }
+  if (v.W <= 0 || v.H <= 0 || v.f <= 0) {
+    drawPlaceholder('Enter artwork size and moulding face width');
+    return;
+  }
+
+  const outerW = v.W + 2 * v.m + 2 * v.f;
+  const outerH = v.H + 2 * v.m + 2 * v.f;
+  const scale = Math.min((cv.width - 2 * PAD) / outerW, (cv.height - 2 * PAD) / outerH);
+
+  const fw = outerW * scale, fh = outerH * scale;     // frame px
+  const x = (cv.width - fw) / 2, y = (cv.height - fh) / 2;
+  const b = v.f * scale;                              // bar thickness px
+  const mp = v.m * scale;                             // mat px
+
+  // drop shadow behind the whole frame
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#111';
+  ctx.fillRect(x, y, fw, fh);
+  ctx.restore();
+
+  // mat (fills the whole opening behind the artwork)
+  ctx.fillStyle = v.m > 0 ? v.matColor : '#0d0d0d';
+  ctx.fillRect(x + b, y + b, fw - 2 * b, fh - 2 * b);
+
+  // artwork, aspect-fit inside the mat opening
+  const ow = fw - 2 * b - 2 * mp, oh = fh - 2 * b - 2 * mp;  // opening px
+  if (ow > 1 && oh > 1) {
+    const s = Math.min(ow / artImg.width, oh / artImg.height);
+    const aw = artImg.width * s, ah = artImg.height * s;
+    ctx.drawImage(artImg, x + b + mp + (ow - aw) / 2, y + b + mp + (oh - ah) / 2, aw, ah);
+    if (v.m > 0) {
+      // subtle mat bevel line around the opening
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + b + mp - 1.5, y + b + mp - 1.5, ow + 3, oh + 3);
+    }
+  }
+
+  drawMouldingBars(x, y, fw, fh, b);
+}
+
+// Draw one bar: clip to miter trapezoid, rotate so the moulding strip
+// (assumed photographed horizontally, TOP of image = OUTER edge of frame)
+// runs along the bar, stretch-drawn to length x thickness.
+function drawBar(clipPts, tx, ty, angle, length, b) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(clipPts[0][0], clipPts[0][1]);
+  for (let i = 1; i < clipPts.length; i++) ctx.lineTo(clipPts[i][0], clipPts[i][1]);
+  ctx.closePath();
+  ctx.clip();
+  ctx.translate(tx, ty);
+  ctx.rotate(angle);
+  const flip = $('flipMould').checked;
+  if (flip) { ctx.translate(0, b); ctx.scale(1, -1); }
+  ctx.drawImage(mouldImg, 0, 0, length, b);
+  ctx.restore();
+}
+
+function drawMouldingBars(x, y, fw, fh, b) {
+  const R = x + fw, B = y + fh;
+  const eps = 0.5; // slight overlap so no hairline gaps at miters
+  // top: strip left→right, outer edge up
+  drawBar([[x - eps, y - eps], [R + eps, y - eps], [R - b, y + b], [x + b, y + b]],
+          x, y, 0, fw, b);
+  // bottom: rotate 180 about its center so outer edge faces down
+  drawBar([[x + b, B - b], [R - b, B - b], [R + eps, B + eps], [x - eps, B + eps]],
+          R, B, Math.PI, fw, b);
+  // right: rotate 90°, strip runs top→bottom, outer edge = right side
+  drawBar([[R - b, y + b], [R + eps, y - eps], [R + eps, B + eps], [R - b, B - b]],
+          R, y, Math.PI / 2, fh, b);
+  // left: rotate -90°, outer edge = left side
+  drawBar([[x - eps, y - eps], [x + b, y + b], [x + b, B - b], [x - eps, B + eps]],
+          x, B, -Math.PI / 2, fh, b);
+
+  // faint miter seam lines for realism
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x + b, y + b);
+  ctx.moveTo(R, y); ctx.lineTo(R - b, y + b);
+  ctx.moveTo(x, B); ctx.lineTo(x + b, B - b);
+  ctx.moveTo(R, B); ctx.lineTo(R - b, B - b);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ============================== update ============================== */
+
+function update() {
+  const v = readInputs();
+  const c = computeCosts(v);
+
+  $('matColorRow').style.display = v.m > 0 ? '' : 'none';
+
+  $('outSize').textContent = fmtIn(c.outerW) + ' × ' + fmtIn(c.outerH) + ' in';
+  $('outFeet').textContent = c.feet.toFixed(2) + ' ft';
+  $('outMat').textContent = fmt$(c.material);
+  $('outPrice').textContent = fmt$(c.price);
+  $('laborStat').style.display = v.laborCostFlat > 0 ? '' : 'none';
+  if (v.laborCostFlat > 0) $('outLabor').textContent = fmt$(v.laborCostFlat);
+  $('calcNote').textContent =
+    'perimeter ' + fmtIn(c.rawTotal) + ' in + ' + v.wastePercent + '% waste · $' +
+    v.costPerFoot.toFixed(2) + '/ft × ' + v.markupMultiplier + '× markup' +
+    (v.laborCostFlat > 0 ? ' + labor' : '');
+
+  const warn = $('warnBox');
+  if (v.f > 0 && (v.f > v.m + v.W || v.f > v.m + v.H)) {
+    warn.textContent = '⚠ Moulding face is wider than the mat + artwork — the numbers still compute, but the mockup proportions will look off.';
+    warn.classList.add('show');
+  } else {
+    warn.classList.remove('show');
+  }
+
+  refreshDirty();
+  render(v);
+}
+
+/* ============================== wiring ============================== */
+
+function loadImageFile(file, cb) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    const img = new Image();
+    img.onload = () => cb(img);
+    img.src = rd.result;   // data URL: same-origin, canvas stays untainted
+  };
+  rd.readAsDataURL(file);
+}
+
+$('fileArt').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  $('nameArt').textContent = f.name;
+  $('chipArt').classList.add('loaded');
+  loadImageFile(f, img => { artImg = img; update(); });
+});
+$('fileMould').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  $('nameMould').textContent = f.name;
+  $('chipMould').classList.add('loaded');
+  loadImageFile(f, img => { mouldImg = img; update(); });
+});
+
+['artW','artH','faceW','matW','matC','costFt','markup','waste','labor'].forEach(id =>
+  $(id).addEventListener('input', update));
+$('flipMould').addEventListener('input', update);
+
+$('profileSelect').addEventListener('change', e => applyProfile(+e.target.value));
+
+$('btnSave').addEventListener('click', () => {
+  const name = profiles[activeProfileIndex].name;
+  profiles[activeProfileIndex] = readProfileFields(name);
+  saveProfiles();
+  refreshDirty();
+  $('profileHint').textContent = 'Saved.';
+});
+
+$('btnSaveAs').addEventListener('click', () => {
+  $('saveAsName').value = 'Copy of ' + profiles[activeProfileIndex].name;
+  $('saveAsRow').classList.add('open');
+  $('saveAsName').focus();
+  $('saveAsName').select();
+});
+$('btnSaveAsCancel').addEventListener('click', () => $('saveAsRow').classList.remove('open'));
+$('saveAsName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('btnSaveAsConfirm').click();
+  if (e.key === 'Escape') $('saveAsRow').classList.remove('open');
+});
+$('btnSaveAsConfirm').addEventListener('click', () => {
+  const name = $('saveAsName').value.trim();
+  if (!name) { $('saveAsName').focus(); return; }
+  profiles.push(readProfileFields(name));
+  activeProfileIndex = profiles.length - 1;
+  saveProfiles();
+  rebuildProfileDropdown();
+  refreshDirty();
+  $('saveAsRow').classList.remove('open');
+  $('profileHint').textContent = 'Saved as “' + name + '”.';
+});
+
+let deleteArmed = null;
+$('btnDelete').addEventListener('click', () => {
+  if (profiles.length <= 1) {
+    $('profileHint').textContent = 'Cannot delete the last profile.';
+    return;
+  }
+  if (!deleteArmed) {
+    // first click arms; second click within 4s confirms
+    $('btnDelete').classList.add('armed');
+    $('profileHint').textContent =
+      'Click again to delete “' + profiles[activeProfileIndex].name + '”.';
+    deleteArmed = setTimeout(() => {
+      deleteArmed = null;
+      $('btnDelete').classList.remove('armed');
+      $('profileHint').textContent = '';
+    }, 4000);
+    return;
+  }
+  clearTimeout(deleteArmed);
+  deleteArmed = null;
+  $('btnDelete').classList.remove('armed');
+  profiles.splice(activeProfileIndex, 1);
+  activeProfileIndex = 0;
+  saveProfiles();
+  rebuildProfileDropdown();
+  applyProfile(0);
+  $('profileHint').textContent = 'Profile deleted.';
+});
+
+$('btnPNG').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'frame-mockup.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+/* ---- built-in sample images (generated procedurally, keeps app single-file) ---- */
+function makeSampleArtwork() {
+  const w = 400, h = 500, c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#d98a4e');
+  grad.addColorStop(0.45, '#b06a8f');
+  grad.addColorStop(1, '#3f5f9e');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+  // vertical color streaks for a painted feel
+  for (let x = 0; x < w; x += 4) {
+    g.fillStyle = 'rgba(255,255,255,' + (0.04 + 0.04 * Math.sin(x / 23)) + ')';
+    g.fillRect(x, 0, 2, h);
+  }
+  // sun
+  g.fillStyle = '#f4d67c';
+  g.beginPath(); g.arc(280, 140, 42, 0, Math.PI * 2); g.fill();
+  const img = new Image();
+  img.src = c.toDataURL();
+  return img;
+}
+function makeSampleMoulding() {
+  const w = 600, h = 90, c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  for (let y = 0; y < h; y++) {
+    const p = y / h;
+    const shade = 0.75 + 0.35 * Math.sin(p * Math.PI) - 0.25 * p; // profile highlight
+    for (let x = 0; x < w; x += 3) {
+      const grain = 20 * Math.sin(x / 9 + 3 * Math.sin(x / 71)) + (Math.random() * 16 - 8);
+      g.fillStyle = 'rgb(' +
+        Math.round((130 + grain) * shade) + ',' +
+        Math.round((85 + grain * 0.7) * shade) + ',' +
+        Math.round((45 + grain * 0.4) * shade) + ')';
+      g.fillRect(x, y, 3, 1);
+    }
+  }
+  const img = new Image();
+  img.src = c.toDataURL();
+  return img;
+}
+$('btnSample').addEventListener('click', () => {
+  let pending = 2;
+  const done = () => { if (--pending === 0) update(); };
+  artImg = makeSampleArtwork();
+  mouldImg = makeSampleMoulding();
+  artImg.onload = done; mouldImg.onload = done;
+  $('nameArt').textContent = 'sample-artwork (generated)';
+  $('nameMould').textContent = 'sample-moulding (generated)';
+  $('chipArt').classList.add('loaded');
+  $('chipMould').classList.add('loaded');
+});
+
+/* init */
+loadProfiles();
+saveProfiles();
+rebuildProfileDropdown();
+applyProfile(activeProfileIndex);
+</script>
+</body>
+</html>
